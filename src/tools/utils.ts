@@ -22,37 +22,47 @@ function xpToLevel(xp: number): number {
 }
 
 export const skillXpInfoSchema = z.object({
-  level: z.number().int().min(1).max(99).optional().describe("Target level (returns XP required)"),
-  current_xp: z.number().int().min(0).optional().describe("Current XP (returns current level and XP to next)"),
+  level: z.number().int().min(1).max(99).optional().describe("Target level (returns total XP required to reach it)"),
+  current_xp: z.number().int().min(0).optional().describe("Current XP amount (returns current level and XP needed for next level)"),
 });
 
 export async function handleSkillXpInfo(args: z.infer<typeof skillXpInfoSchema>) {
-  if (!args.level && args.current_xp === undefined) {
-    throw new Error("Either level or current_xp must be provided");
-  }
+  try {
+    if (!args.level && args.current_xp === undefined) {
+      return {
+        content: [{ type: "text" as const, text: "Either level or current_xp must be provided" }],
+        isError: true,
+      };
+    }
 
-  let result: Record<string, unknown>;
+    let result: Record<string, unknown>;
 
-  if (args.current_xp !== undefined) {
-    const current_level = xpToLevel(args.current_xp);
-    const next_level_xp = levelToXp(current_level + 1);
-    const xp_to_next = next_level_xp - args.current_xp;
-    result = {
-      current_xp: args.current_xp,
-      current_level,
-      next_level: current_level + 1,
-      xp_to_next_level: current_level < 99 ? xp_to_next : 0,
-      next_level_xp_required: current_level < 99 ? next_level_xp : null,
+    if (args.current_xp !== undefined) {
+      const current_level = xpToLevel(args.current_xp);
+      const next_level_xp = levelToXp(current_level + 1);
+      const xp_to_next = next_level_xp - args.current_xp;
+      result = {
+        current_xp: args.current_xp,
+        current_level,
+        next_level: current_level + 1,
+        xp_to_next_level: current_level < 99 ? xp_to_next : 0,
+        next_level_xp_required: current_level < 99 ? next_level_xp : null,
+      };
+    } else {
+      const level = args.level!;
+      const xp_required = levelToXp(level);
+      result = {
+        level,
+        xp_required,
+        xp_from_1: xp_required,
+      };
+    }
+
+    return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+  } catch (err) {
+    return {
+      content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
+      isError: true,
     };
-  } else {
-    const level = args.level!;
-    const xp_required = levelToXp(level);
-    result = {
-      level,
-      xp_required,
-      xp_from_1: xp_required,
-    };
   }
-
-  return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 }

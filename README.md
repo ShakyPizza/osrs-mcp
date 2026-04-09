@@ -38,7 +38,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "osrs": {
       "command": "node",
-      "args": ["/Users/orri/Documents/aiwork/projects/osrs-mcp/dist/index.js"],
+      "args": ["/path/to/osrs-mcp/dist/index.js"],
       "env": {
         "ANTHROPIC_API_KEY": "your-key-here"
       }
@@ -54,7 +54,7 @@ Or with `tsx` for development (no build step):
   "mcpServers": {
     "osrs": {
       "command": "npx",
-      "args": ["tsx", "/Users/orri/Documents/aiwork/projects/osrs-mcp/src/index.ts"],
+      "args": ["tsx", "/path/to/osrs-mcp/src/index.ts"],
       "env": {
         "ANTHROPIC_API_KEY": "your-key-here"
       }
