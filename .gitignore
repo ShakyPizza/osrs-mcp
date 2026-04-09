@@ -5,3 +5,4 @@ dist/
 *.d.ts.map
 /tmp/osrs-capture-*.png
 ~/.osrs-mcp/
+.DS_Store
