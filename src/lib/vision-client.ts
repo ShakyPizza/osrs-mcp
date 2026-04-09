@@ -1,8 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const isLocal = process.env.VISION_PROVIDER === "local";
+
+const client = isLocal
+  ? new Anthropic({
+      baseURL: process.env.LOCAL_AI_BASE_URL ?? "http://localhost:1234",
+      apiKey: process.env.LOCAL_AI_API_KEY ?? "lmstudio",
+    })
+  : new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
 
 const OSRS_VISION_SYSTEM = `You are an expert Old School RuneScape (OSRS) game state analyzer. You analyze screenshots of the OSRS game client (typically RuneLite) and extract structured information.
 
@@ -67,10 +74,16 @@ export async function analyzeGameScreen(
 ): Promise<string> {
   const userPrompt = question ?? FOCUS_PROMPTS[focus];
 
+  const thinkingParam = isLocal
+    ? process.env.LOCAL_AI_THINKING === "1"
+      ? { thinking: { type: "enabled" as const, budget_tokens: 2048 } }
+      : {}
+    : { thinking: { type: "adaptive" as const } };
+
   const response = await client.messages.create({
-    model: "claude-opus-4-6",
+    model: isLocal ? (process.env.LOCAL_AI_DETAIL_MODEL ?? "qwen2-vl-7b-instruct") : "claude-opus-4-6",
     max_tokens: 4096,
-    thinking: { type: "adaptive" },
+    ...thinkingParam,
     system: OSRS_VISION_SYSTEM,
     messages: [
       {
@@ -103,7 +116,7 @@ export async function analyzeGameScreen(
 // Fast analysis using Haiku for simple single-value reads
 export async function fastAnalyzeScreen(imageBase64: string, prompt: string): Promise<string> {
   const response = await client.messages.create({
-    model: "claude-haiku-4-5",
+    model: isLocal ? (process.env.LOCAL_AI_FAST_MODEL ?? "qwen2-vl-7b-instruct") : "claude-haiku-4-5",
     max_tokens: 1024,
     system: OSRS_VISION_SYSTEM,
     messages: [
