@@ -1,19 +1,5 @@
 {
   "enabledPlugins": {
     "mcp-server-dev@claude-plugins-official": true
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "agent",
-            "prompt": "A file was just edited in the osrs-mcp project. Tool input: $ARGUMENTS\n\nLook at tool_input.file_path to identify the changed file. If it is README.md itself, do nothing. Otherwise, read the changed file and README.md, then decide if README.md needs updating to reflect the changes. Only update if the changes are directly relevant to what is documented (setup, .env config, vision provider options, window capture behavior, tools list, Claude Desktop config, etc.). Make targeted edits — do not rewrite sections that are still accurate.",
-            "timeout": 60
-          }
-        ]
-      }
-    ]
   }
 }
