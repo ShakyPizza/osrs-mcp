@@ -66,3 +66,58 @@ export async function handleSkillXpInfo(args: z.infer<typeof skillXpInfoSchema>)
     };
   }
 }
+
+export const calcItemsToLevelSchema = z.object({
+  skill: z.string().describe("Skill name (e.g. 'Woodcutting'). Used for labeling the result."),
+  current_level: z.number().int().min(1).max(98).optional().describe("Current level. Provide this OR current_xp."),
+  current_xp: z.number().int().min(0).optional().describe("Current XP. Provide this OR current_level."),
+  target_level: z.number().int().min(2).max(99).describe("Target level to reach."),
+  xp_per_item: z.number().positive().describe("XP granted per item/action (e.g. 87.5 for cutting magic logs)."),
+});
+
+export async function handleCalcItemsToLevel(args: z.infer<typeof calcItemsToLevelSchema>) {
+  try {
+    const hasCurrent = args.current_level !== undefined || args.current_xp !== undefined;
+    if (!hasCurrent) {
+      return {
+        content: [{ type: "text" as const, text: "Provide either current_level or current_xp." }],
+        isError: true,
+      };
+    }
+
+    const current_xp_val = args.current_xp !== undefined ? args.current_xp : levelToXp(args.current_level!);
+    const current_level_val = xpToLevel(current_xp_val);
+
+    if (args.target_level <= current_level_val) {
+      return {
+        content: [{ type: "text" as const, text: `target_level (${args.target_level}) must be higher than current level (${current_level_val}).` }],
+        isError: true,
+      };
+    }
+
+    const target_xp = levelToXp(args.target_level);
+    const xp_needed = target_xp - current_xp_val;
+    const items_needed = Math.ceil(xp_needed / args.xp_per_item);
+
+    return {
+      content: [{
+        type: "text" as const,
+        text: JSON.stringify({
+          skill: args.skill,
+          current_level: current_level_val,
+          current_xp: current_xp_val,
+          target_level: args.target_level,
+          target_xp,
+          xp_needed,
+          xp_per_item: args.xp_per_item,
+          items_needed,
+        }),
+      }],
+    };
+  } catch (err) {
+    return {
+      content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
+      isError: true,
+    };
+  }
+}
