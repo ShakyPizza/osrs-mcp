@@ -6,3 +6,4 @@ dist/
 /tmp/osrs-capture-*.png
 ~/.osrs-mcp/
 .DS_Store
+CLAUDE.md
