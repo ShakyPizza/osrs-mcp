@@ -9,7 +9,7 @@ MCP server for Old School RuneScape. Gives an AI agent eyes, knowledge, and clic
 - **Grand Exchange prices** — real-time prices, history, and profit calculator
 - **Skill training tools** — XP calculations and items-to-level planning
 
-Designed to work alongside the `computer-use` MCP for autonomous gameplay: `osrs-mcp` reads state and resolves where to click; `computer-use` performs the clicks.
+
 
 ---
 
