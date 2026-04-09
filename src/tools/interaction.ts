@@ -20,9 +20,11 @@ function getPngDimensions(base64: string): { width: number; height: number } {
 }
 
 // Fixed client is exactly 765 × 503 (or 2× on Retina: 1530 × 1006).
-// Everything else is resizable.
-function classifyLayout(width: number): "fixed" | "resizable" {
-  return width === 765 || width === 1530 ? "fixed" : "resizable";
+// Both dimensions must match — width alone is not sufficient.
+export function classifyLayout(width: number, height: number): "fixed" | "resizable" {
+  return (width === 765 && height === 503) || (width === 1530 && height === 1006)
+    ? "fixed"
+    : "resizable";
 }
 
 async function resolveLayout(preferCached = true): Promise<{
@@ -32,7 +34,7 @@ async function resolveLayout(preferCached = true): Promise<{
 }> {
   const capture = preferCached ? await getOrCaptureScreen() : await freshCapture();
   const { width, height } = getPngDimensions(capture.image_base64);
-  return { layout: classifyLayout(width), width, height };
+  return { layout: classifyLayout(width, height), width, height };
 }
 
 // ─── Layout constants ────────────────────────────────────────────────────────
@@ -226,47 +228,55 @@ export async function handleInventorySlotCoords(args: z.infer<typeof inventorySl
 
 // ─── get_clickable_regions ──────────────────────────────────────────────────
 
-const FIXED_REGIONS = {
-  minimap:         { x: 571, y:   4, width: 156, height: 156 },
-  inventory_panel: { x: 548, y: 205, width: 190, height: 262 },
-  prayer_panel:    { x: 548, y: 205, width: 190, height: 262 },
-  stats_panel:     { x: 548, y: 205, width: 190, height: 262 },
-  chat_box:        { x:   0, y: 338, width: 519, height: 165 },
-  compass:         { x: 548, y:   4, width:  34, height:  34 },
-};
+// In resizable mode, panels are anchored to window edges — not scaled from fixed coords.
+// Fixed mode values are precise. Resizable values are approximate anchored estimates.
+function computeRegions(layout: "fixed" | "resizable", width: number, height: number) {
+  if (layout === "fixed") {
+    return {
+      minimap:         { x: 571, y:   4, width: 156, height: 156 },
+      inventory_panel: { x: 548, y: 205, width: 190, height: 262 },
+      prayer_panel:    { x: 548, y: 205, width: 190, height: 262 },
+      stats_panel:     { x: 548, y: 205, width: 190, height: 262 },
+      chat_box:        { x:   0, y: 338, width: 519, height: 165 },
+      compass:         { x: 548, y:   4, width:  34, height:  34 },
+    };
+  }
+  // Resizable: panels anchor to right/bottom edges of the window.
+  // sidebar width (249) is constant regardless of window size.
+  const sw = SIDEBAR_WIDTH; // 249
+  return {
+    minimap:         { x: width - 161,      y: 0,            width: 161, height: 161 },
+    inventory_panel: { x: width - sw,       y: height - 298, width: 190, height: 262 },
+    prayer_panel:    { x: width - sw,       y: height - 298, width: 190, height: 262 },
+    stats_panel:     { x: width - sw,       y: height - 298, width: 190, height: 262 },
+    chat_box:        { x: 0,               y: height - 165, width: width - sw - 30, height: 165 },
+    compass:         { x: width - sw - 34, y: 4,            width: 34,  height:  34 },
+  };
+}
 
 export const getClickableRegionsSchema = z.object({
   layout: z.enum(["auto", "fixed", "resizable"]).optional().default("auto")
-    .describe("'auto' detects from current screenshot (default). 'fixed' = precise 765×503 values. 'resizable' = approximate."),
+    .describe("'auto' detects from current screenshot (default). 'fixed' = precise 765×503 values. 'resizable' = edge-anchored approximation (uses 1920×1080 if no screenshot available)."),
 });
 
 export async function handleGetClickableRegions(args: z.infer<typeof getClickableRegionsSchema>) {
   try {
     let resolvedLayout: "fixed" | "resizable";
-    let scale = 1;
+    let width: number;
+    let height: number;
     let approximate = false;
 
     if (args.layout === "auto") {
-      const detected = await resolveLayout(true);
-      resolvedLayout = detected.layout;
-      scale = detected.width / 765;
+      ({ layout: resolvedLayout, width, height } = await resolveLayout(true));
       approximate = resolvedLayout === "resizable";
     } else {
       resolvedLayout = args.layout;
+      width  = resolvedLayout === "fixed" ? 765  : 1920;
+      height = resolvedLayout === "fixed" ? 503  : 1080;
       approximate = resolvedLayout === "resizable";
     }
 
-    const regions = Object.fromEntries(
-      Object.entries(FIXED_REGIONS).map(([key, r]) => [
-        key,
-        {
-          x: Math.round(r.x * scale),
-          y: Math.round(r.y * scale),
-          width: Math.round(r.width * scale),
-          height: Math.round(r.height * scale),
-        },
-      ])
-    );
+    const regions = computeRegions(resolvedLayout, width, height);
 
     return {
       content: [{
