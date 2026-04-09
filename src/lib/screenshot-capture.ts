@@ -7,65 +7,31 @@ import type { CaptureResult } from "../types/game-state.js";
 
 const exec = promisify(execCb);
 
-// Searches for a RuneLite window using AppleScript and returns its CGWindowID.
-// RuneLite is a Java process; its window title contains "RuneLite".
+// Searches for a RuneLite window using CGWindowListCopyWindowInfo (via Swift)
+// and returns the CGWindowID needed for `screencapture -l`.
 async function findRuneLiteCGWindowId(): Promise<number | null> {
-  // Try AppleScript + System Events first
-  const script = `
-    tell application "System Events"
-      set procs to every process whose background only is false
-      repeat with proc in procs
-        if name of proc contains "RuneLite" then
-          return unix id of proc
-        end if
-        if name of proc contains "java" then
-          try
-            set wins to every window of proc
-            repeat with w in wins
-              if title of w contains "RuneLite" then
-                return unix id of proc
-              end if
-            end repeat
-          end try
-        end if
-      end repeat
-      return -1
-    end tell
-  `;
-
-  try {
-    const { stdout } = await exec(`osascript -e '${script.replace(/'/g, "\\'")}'`);
-    const pid = parseInt(stdout.trim(), 10);
-    if (pid > 0) {
-      // Use screencapture with PID-based lookup via CGWindowListCopyWindowInfo
-      const cgIdScript = `
-        tell application "System Events"
-          set allWins to {}
-          try
-            set proc to first process whose unix id is ${pid}
-            set wins to every window of proc
-            if (count of wins) > 0 then
-              return id of first item of wins
-            end if
-          end try
-          return -1
-        end tell
-      `;
-      const { stdout: winOut } = await exec(`osascript -e '${cgIdScript.replace(/'/g, "\\'")}'`);
-      const wid = parseInt(winOut.trim(), 10);
-      if (wid > 0) return wid;
+  // System Events' `id of window` returns an accessibility element ID, not a CGWindowID.
+  // We use Swift + CGWindowListCopyWindowInfo to get the real window number.
+  const swiftScript = `
+import Cocoa
+let list = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as! [[String: Any]]
+for w in list {
+    let owner = (w[kCGWindowOwnerName as String] as? String ?? "").lowercased()
+    let title = (w[kCGWindowName as String] as? String ?? "").lowercased()
+    if owner.contains("runelite") || title.contains("runelite") ||
+       (owner.contains("java") && title.contains("runelite")) {
+        if let wid = w[kCGWindowNumber as String] as? Int { print(wid); exit(0) }
     }
-  } catch {
-    // AppleScript approach failed, fall through
-  }
+}
+exit(1)
+`.trim();
 
-  // Fallback: try GetWindowID (brew install thirtythreeforty/personal/getwindowid)
   try {
-    const { stdout } = await exec(`GetWindowID "RuneLite" "RuneLite" 2>/dev/null`);
+    const { stdout } = await exec(`swift - <<'SWIFT_EOF'\n${swiftScript}\nSWIFT_EOF`);
     const wid = parseInt(stdout.trim(), 10);
     if (wid > 0) return wid;
   } catch {
-    // Not installed
+    // Swift approach failed, fall through
   }
 
   return null;
@@ -89,7 +55,7 @@ export async function findRuneLiteWindow(): Promise<{
       return {
         found: true,
         window_title: "RuneLite (process found, window ID unavailable)",
-        method: "fullscreen_fallback",
+        method: "process_fallback",
       };
     }
   } catch {
