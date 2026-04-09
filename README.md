@@ -2,7 +2,7 @@
 
 MCP server for Old School RuneScape. Gives an AI agent eyes and knowledge for OSRS by combining:
 
-- **Screen vision** — captures the RuneLite window and uses Claude to analyze game state
+- **Screen vision** — captures the RuneLite window and uses ClaudeAPI or a local llm with vision capabilities to analyze game state
 - **OSRS Wiki** — item, NPC, quest, and page lookups
 - **Grand Exchange prices** — real-time prices, history, and profit calculator
 
@@ -10,24 +10,39 @@ MCP server for Old School RuneScape. Gives an AI agent eyes and knowledge for OS
 
 ```bash
 cp .env.example .env
-# Add your ANTHROPIC_API_KEY to .env
+# Edit .env — set either ANTHROPIC_API_KEY or VISION_PROVIDER=local (see below)
 
 npm install
 npm run build
 ```
 
-### macOS Window Capture
+### Vision provider
 
-The screenshot tool uses `screencapture -l <windowID>` to capture just the RuneLite window.
+The server supports two vision backends, configured via `.env`:
 
-**Option 1 (recommended):** Install `GetWindowID`:
-```bash
-brew install thirtythreeforty/personal/getwindowid
+**Option A — Anthropic API (default)**
+```env
+ANTHROPIC_API_KEY=your-api-key-here
 ```
 
-**Option 2:** The server tries AppleScript via `osascript` first — this works on most macOS versions without extra installs.
+**Option B — Local AI via LM Studio** (or any Anthropic-compatible server)
 
-**Fallback:** If window ID detection fails, it captures the full screen. OSRS analysis still works as long as RuneLite is visible.
+Your local model must be vision/multimodal capable (e.g. `qwen2-vl-7b-instruct`, `gemma-4`, `llava`). Text-only models cannot analyze screenshots.
+
+```env
+VISION_PROVIDER=local
+LOCAL_AI_BASE_URL=http://localhost:1234
+LOCAL_AI_API_KEY=lmstudio
+LOCAL_AI_DETAIL_MODEL=your-vision-model-name
+LOCAL_AI_FAST_MODEL=your-vision-model-name
+LOCAL_AI_THINKING=0   # set to 1 if your model supports reasoning
+```
+
+### macOS window capture
+
+The screenshot tool uses `screencapture -l <CGWindowID>` to capture just the RuneLite window. Window ID detection uses Swift + `CGWindowListCopyWindowInfo` — no extra tools required.
+
+**Fallback:** If window ID detection fails, it captures the full screen. Analysis still works as long as RuneLite is visible.
 
 ## Claude Desktop Config
 
@@ -38,14 +53,13 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "osrs": {
       "command": "node",
-      "args": ["/path/to/osrs-mcp/dist/index.js"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your-key-here"
-      }
+      "args": ["/path/to/osrs-mcp/dist/index.js"]
     }
   }
 }
 ```
+
+The server reads config from `.env` in the project root — set `ANTHROPIC_API_KEY` or `VISION_PROVIDER=local` there. You can also pass env vars inline in the config if you prefer.
 
 Or with `tsx` for development (no build step):
 
@@ -54,10 +68,7 @@ Or with `tsx` for development (no build step):
   "mcpServers": {
     "osrs": {
       "command": "npx",
-      "args": ["tsx", "/path/to/osrs-mcp/src/index.ts"],
-      "env": {
-        "ANTHROPIC_API_KEY": "your-key-here"
-      }
+      "args": ["tsx", "/path/to/osrs-mcp/src/index.ts"]
     }
   }
 }
