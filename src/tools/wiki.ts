@@ -9,12 +9,19 @@ import {
 
 export const wikiSearchSchema = z.object({
   query: z.string().describe("Search query for the OSRS wiki"),
-  limit: z.number().int().min(1).max(10).optional().default(5),
+  limit: z.number().int().min(1).max(10).optional().default(5).describe("Maximum number of results to return (1-10)"),
 });
 
 export async function handleWikiSearch(args: z.infer<typeof wikiSearchSchema>) {
-  const results = await wikiSearch(args.query, args.limit);
-  return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
+  try {
+    const results = await wikiSearch(args.query, args.limit);
+    return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
+  } catch (err) {
+    return {
+      content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
+      isError: true,
+    };
+  }
 }
 
 export const wikiPageSchema = z.object({
@@ -22,8 +29,15 @@ export const wikiPageSchema = z.object({
 });
 
 export async function handleWikiPage(args: z.infer<typeof wikiPageSchema>) {
-  const info = await wikiPageSummary(args.title);
-  return { content: [{ type: "text" as const, text: JSON.stringify(info) }] };
+  try {
+    const info = await wikiPageSummary(args.title);
+    return { content: [{ type: "text" as const, text: JSON.stringify(info) }] };
+  } catch (err) {
+    return {
+      content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
+      isError: true,
+    };
+  }
 }
 
 export const wikiItemInfoSchema = z.object({
@@ -31,8 +45,15 @@ export const wikiItemInfoSchema = z.object({
 });
 
 export async function handleWikiItemInfo(args: z.infer<typeof wikiItemInfoSchema>) {
-  const info = await wikiItemInfo(args.item_name);
-  return { content: [{ type: "text" as const, text: JSON.stringify(info) }] };
+  try {
+    const info = await wikiItemInfo(args.item_name);
+    return { content: [{ type: "text" as const, text: JSON.stringify(info) }] };
+  } catch (err) {
+    return {
+      content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
+      isError: true,
+    };
+  }
 }
 
 export const wikiNpcInfoSchema = z.object({
@@ -40,8 +61,15 @@ export const wikiNpcInfoSchema = z.object({
 });
 
 export async function handleWikiNpcInfo(args: z.infer<typeof wikiNpcInfoSchema>) {
-  const info = await wikiNpcInfo(args.npc_name);
-  return { content: [{ type: "text" as const, text: JSON.stringify(info) }] };
+  try {
+    const info = await wikiNpcInfo(args.npc_name);
+    return { content: [{ type: "text" as const, text: JSON.stringify(info) }] };
+  } catch (err) {
+    return {
+      content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
+      isError: true,
+    };
+  }
 }
 
 export const wikiQuestInfoSchema = z.object({
@@ -49,6 +77,13 @@ export const wikiQuestInfoSchema = z.object({
 });
 
 export async function handleWikiQuestInfo(args: z.infer<typeof wikiQuestInfoSchema>) {
-  const info = await wikiQuestInfo(args.quest_name);
-  return { content: [{ type: "text" as const, text: JSON.stringify(info) }] };
+  try {
+    const info = await wikiQuestInfo(args.quest_name);
+    return { content: [{ type: "text" as const, text: JSON.stringify(info) }] };
+  } catch (err) {
+    return {
+      content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
+      isError: true,
+    };
+  }
 }
