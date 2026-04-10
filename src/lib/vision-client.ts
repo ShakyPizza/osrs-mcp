@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { ensureModelLoaded, invalidateModel } from "./lmstudio-manager.js";
 
 const isLocal = process.env.VISION_PROVIDER === "local";
 
@@ -73,6 +74,9 @@ export async function analyzeGameScreen(
   question?: string
 ): Promise<string> {
   const userPrompt = question ?? FOCUS_PROMPTS[focus];
+  const modelId = isLocal ? (process.env.LOCAL_AI_DETAIL_MODEL ?? "gemma-4-26b-a4b") : "claude-opus-4-6";
+
+  if (isLocal) await ensureModelLoaded(modelId);
 
   const thinkingParam = isLocal
     ? process.env.LOCAL_AI_THINKING === "1"
@@ -80,6 +84,7 @@ export async function analyzeGameScreen(
       : {}
     : {};
 
+  try {
   const response = await client.messages.create({
     model: isLocal ? (process.env.LOCAL_AI_DETAIL_MODEL ?? "gemma-4-26b-a4b") : "claude-opus-4-6",
     max_tokens: 4096,
@@ -111,12 +116,24 @@ export async function analyzeGameScreen(
     throw new Error("No text response from vision model");
   }
   return textBlock.text;
+  } catch (err) {
+    // If LM Studio says no models loaded, invalidate so next call retries the load.
+    if (err instanceof Error && err.message.includes("No models loaded")) {
+      invalidateModel(modelId);
+    }
+    throw err;
+  }
 }
 
 // Fast analysis using Haiku for simple single-value reads
 export async function fastAnalyzeScreen(imageBase64: string, prompt: string): Promise<string> {
+  const modelId = isLocal ? (process.env.LOCAL_AI_FAST_MODEL ?? "gemma-4-26b-a4b") : "claude-haiku-4-5";
+
+  if (isLocal) await ensureModelLoaded(modelId);
+
+  try {
   const response = await client.messages.create({
-    model: isLocal ? (process.env.LOCAL_AI_FAST_MODEL ?? "gemma-4-26b-a4b") : "claude-haiku-4-5",
+    model: modelId,
     max_tokens: 1024,
     system: OSRS_VISION_SYSTEM,
     messages: [
@@ -136,4 +153,10 @@ export async function fastAnalyzeScreen(imageBase64: string, prompt: string): Pr
   const textBlock = response.content.find((b) => b.type === "text");
   if (!textBlock || textBlock.type !== "text") throw new Error("No text response");
   return textBlock.text;
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("No models loaded")) {
+      invalidateModel(modelId);
+    }
+    throw err;
+  }
 }
