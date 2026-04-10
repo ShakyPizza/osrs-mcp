@@ -49,10 +49,10 @@ server.tool("ge_price_history", "Get GE price history for an item over time", ge
 server.tool("ge_mapping", "Get the full item name-to-ID mapping, optionally filtered by name", geMappingSchema.shape, handleGeMapping);
 server.tool("calculate_profit", "Calculate GE flip profit after 1% tax given buy/sell prices and quantity", calculateProfitSchema.shape, handleCalculateProfit);
 
-// --- Interaction / autonomous play tools ---
+// --- Interaction / coordinate tools ---
 server.tool("detect_layout", "Detect whether RuneLite is in fixed (765×503) or resizable mode by reading screenshot pixel dimensions", detectLayoutSchema.shape, handleDetectLayout);
 server.tool("get_tab_coords", "Get pixel coordinates to click a sidebar tab (prayer, inventory, skills, combat_options, magic, etc.). Auto-detects layout.", getTabCoordsSchema.shape, handleGetTabCoords);
-server.tool("inventory_slot_coords", "Get pixel center coordinates for an inventory slot (0-27) for computer-use clicks. Auto-detects layout.", inventorySlotCoordsSchema.shape, handleInventorySlotCoords);
+server.tool("inventory_slot_coords", "Get pixel center coordinates for an inventory slot (0-27). Auto-detects layout.", inventorySlotCoordsSchema.shape, handleInventorySlotCoords);
 server.tool("get_clickable_regions", "Get bounding boxes for key UI elements: minimap, inventory, chat, compass. Auto-detects layout.", getClickableRegionsSchema.shape, handleGetClickableRegions);
 server.tool("find_npc_on_screen", "Locate a named NPC in the current screenshot and return its screen coordinates", findNpcOnScreenSchema.shape, handleFindNpcOnScreen);
 server.tool("find_object_on_screen", "Locate a named interactable object (tree, chest, bank, etc.) and return its screen coordinates", findObjectOnScreenSchema.shape, handleFindObjectOnScreen);

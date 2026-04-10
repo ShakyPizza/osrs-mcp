@@ -1,16 +1,19 @@
 # osrs-mcp
 
-MCP server for Old School RuneScape. Gives an AI agent eyes, knowledge, and click-targeting for OSRS by combining:
+MCP server for Old School RuneScape. Gives an AI agent eyes and knowledge for OSRS by combining:
 
 - **Screen vision** — captures the RuneLite window and uses Claude or a local vision LLM to analyze game state
 - **RuneLite HTTP API** — reads exact skill levels, inventory, and equipment directly from the game client (no vision needed)
-- **Click coordinates** — resolves pixel positions for inventory slots, sidebar tabs, and UI regions so a computer-use agent can click accurately
+- **Click coordinates** — resolves pixel positions for inventory slots, sidebar tabs, and UI regions
 - **OSRS Wiki** — item, NPC, quest, and page lookups
 - **Grand Exchange prices** — real-time prices, history, and profit calculator
 - **Skill training tools** — XP calculations and items-to-level planning
 
+<<<<<<< HEAD
+=======
 
 
+>>>>>>> origin/main
 ---
 
 ## Setup
@@ -140,7 +143,7 @@ Or with `tsx` for development (no build step needed):
 | `detect_loot` | Identify ground items visible after a kill |
 
 ### Click coordinates
-*Returns pixel positions for use with `computer-use` MCP clicks. Layout is auto-detected from screenshot dimensions by default.*
+*Returns pixel positions for UI elements. Layout is auto-detected from screenshot dimensions by default.*
 
 | Tool | Description |
 |------|-------------|
@@ -181,23 +184,6 @@ Or with `tsx` for development (no build step needed):
 
 ---
 
-## Autonomous play example
-
-Combining `osrs-mcp` with the `computer-use` MCP allows an AI agent to loop autonomously. A basic combat loop looks like:
-
-```
-1. get_stats                        → confirm HP / prayer levels
-2. detect_combat_state              → are we in combat? any loot?
-3. find_npc_on_screen {npc: "Cow"} → get screen coords of next target
-4. computer-use: left_click(x, y)   → attack
-5. detect_loot                      → bones/hide on ground?
-6. find_object_on_screen {object: "Cowhide"} → locate loot
-7. computer-use: left_click(x, y)   → pick up
-8. get_inventory                    → check if full (28 slots)
-9. → if full: get_tab_coords {tab: "inventory"} → bank run
-```
-
----
 
 ## Development
 
