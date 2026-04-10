@@ -9,6 +9,11 @@ MCP server for Old School RuneScape. Gives an AI agent eyes and knowledge for OS
 - **Grand Exchange prices** — real-time prices, history, and profit calculator
 - **Skill training tools** — XP calculations and items-to-level planning
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> origin/main
 ---
 
 ## Setup
